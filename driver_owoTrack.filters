@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="driverlog.cpp" />
+    <ClCompile Include="NetworkedDeviceQuatServer.cpp" />
+    <ClCompile Include="RemoteTracker.cpp" />
+    <ClCompile Include="UDPDeviceQuatServer.cpp" />
+    <ClCompile Include="vector3.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="quat.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="basis.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="PositionPredictor.cpp" />
+    <ClCompile Include="quaternion.h" />
+    <ClCompile Include="drivermain.cpp" />
+    <ClCompile Include="ByteBuffer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DeviceQuatServer.h" />
+    <ClInclude Include="driverlog.h" />
+    <ClInclude Include="Network.h" />
+    <ClInclude Include="NetworkedDeviceQuatServer.h" />
+    <ClInclude Include="RemoteTracker.h" />
+    <ClInclude Include="RemoteTrackerSettings.h" />
+    <ClInclude Include="UDPDeviceQuatServer.h" />
+    <ClInclude Include="util.h" />
+    <ClInclude Include="vector3.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="quat.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="basis.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="shared.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="PositionPredictor.h" />
+    <ClInclude Include="ByteBuffer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="math">
+      <UniqueIdentifier>{b7fbd658-5135-48df-9877-5c0a4bde4fa4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
