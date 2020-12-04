@@ -9,7 +9,7 @@ using namespace bb;
 void UDPDeviceQuatServer::send_heartbeat() {
 	hb_accum += 1;
 
-	if (hb_accum > 500) {
+	if (hb_accum > 200) {
 		hb_accum = 0;
 
 		if (!isConnectionAlive())

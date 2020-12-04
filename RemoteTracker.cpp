@@ -44,15 +44,17 @@ EVRInitError RemoteTracker::Activate(vr::TrackedDeviceIndex_t unObjectId)
 	vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_RenderModelName_String, "{htc}vr_tracker_vive_1_0");
 
 	// return a constant that's not 0 (invalid) or 1 (reserved for Oculus)
-	vr::VRProperties()->SetUint64Property(m_ulPropertyContainer, Prop_CurrentUniverseId_Uint64, 2);
+	// vr::VRProperties()->SetUint64Property(m_ulPropertyContainer, Prop_CurrentUniverseId_Uint64, 2);
 
-	vr::VRProperties()->SetBoolProperty(m_ulPropertyContainer, Prop_IsOnDesktop_Bool, false);
+	// vr::VRProperties()->SetBoolProperty(m_ulPropertyContainer, Prop_IsOnDesktop_Bool, false);
 
 	vr::VRProperties()->SetBoolProperty(m_ulPropertyContainer, Prop_NeverTracked_Bool, false);
 
 	vr::VRProperties()->SetInt32Property(m_ulPropertyContainer, Prop_ControllerRoleHint_Int32, TrackedControllerRole_OptOut);
 
-	vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_InputProfilePath_String, "{sample}/input/mycontroller_profile.json");
+	vr::VRProperties()->SetInt32Property(m_ulPropertyContainer, Prop_ControllerHandSelectionPriority_Int32, -111111);
+
+	// vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_InputProfilePath_String, "{sample}/input/mycontroller_profile.json");
 
 	// create our haptic component
 	vr::VRDriverInput()->CreateHapticComponent(m_ulPropertyContainer, "/output/haptic", &m_compHaptic);
@@ -162,13 +164,13 @@ void RemoteTracker::DebugRequest(const char* pchRequest, char* pchResponseBuffer
 DriverPose_t RemoteTracker::GetPose()
 {
 	DriverPose_t pose = { 0 };
-	pose.poseIsValid = true;
-	pose.result = TrackingResult_Running_OutOfRange;
-	pose.deviceIsConnected = true;
+	pose.poseIsValid = false;
+	pose.result = TrackingResult_Calibrating_OutOfRange;
+	pose.deviceIsConnected = false;
 
-	pose.vecPosition[0] = 0.0;
-	pose.vecPosition[1] = 1.5;
-	pose.vecPosition[2] = 0.0;
+	pose.vecPosition[0] = 9999999;
+	pose.vecPosition[1] = 9999999;
+	pose.vecPosition[2] = 9999999;
 
 	pose.vecVelocity[0] = 0.0;
 	pose.vecVelocity[1] = 0.0;
@@ -191,11 +193,16 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 	}
 
 	if (!dataserver->isDataAvailable()) {
+		if (!dataserver->isConnectionAlive()) {
+			DriverPose_t pose = GetPose();
+
+			VRServerDriverHost()->TrackedDevicePoseUpdated(m_unObjectId, pose, sizeof(pose));
+		}
 		return;
 	}
 	DriverPose_t pose = { 0 };
 	pose.poseIsValid = true;
-	pose.result = TrackingResult_Running_OK;
+	pose.result = is_calibrating ? TrackingResult_Calibrating_InProgress : TrackingResult_Running_OK;
 	pose.deviceIsConnected = true;
 
 

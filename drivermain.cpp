@@ -107,7 +107,7 @@ void RemoteTrackerServerDriver::RunFrame()
 	if (primary_tracker_added < 400) {
 		primary_tracker_added += 1;
 	}
-	else if (primary_tracker_added < 5000) {
+	else if (primary_tracker_added < 50000) {
 		primary_tracker_added = 100000;
 		add_tracker(0, 6969);
 	}
