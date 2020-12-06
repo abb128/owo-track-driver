@@ -37,8 +37,15 @@ RemoteTracker::~RemoteTracker()
 
 EVRInitError RemoteTracker::Activate(vr::TrackedDeviceIndex_t unObjectId)
 {
+	vr::VRSettings()->SetString(k_pch_Trackers_Section, "/devices/owoTrack/VIRT_TRACK00", "TrackerRole_Waist");
+	vr::VRSettings()->SetString(k_pch_Trackers_Section, "/htc/vive_tracker/VIRT_TRACK00", "TrackerRole_Waist");
+
+
+
 	m_unObjectId = unObjectId;
 	m_ulPropertyContainer = vr::VRProperties()->TrackedDeviceToPropertyContainer(m_unObjectId);
+
+
 
 	vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_ModelNumber_String, "Vive Tracker Pro MV");
 	vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_RenderModelName_String, "{htc}vr_tracker_vive_1_0");
@@ -48,11 +55,22 @@ EVRInitError RemoteTracker::Activate(vr::TrackedDeviceIndex_t unObjectId)
 
 	vr::VRProperties()->SetInt32Property(m_ulPropertyContainer, Prop_DeviceClass_Int32, TrackedDeviceClass_GenericTracker);
 
+	//vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_InputProfilePath_String, "{owoTrack}/input/remote_profile.json");
+
+	std::string l_registeredType("htc/vive_tracker");
+	l_registeredType.append(m_sSerialNumber);
+	vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_RegisteredDeviceType_String, l_registeredType.c_str());
+
+	//vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_InputProfilePath_String, "{htc}/input/vive_tracker_profile.json");
 	vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_InputProfilePath_String, "{owoTrack}/input/remote_profile.json");
+
 	vr::VRProperties()->SetBoolProperty(m_ulPropertyContainer, Prop_Identifiable_Bool, true);
 	vr::VRProperties()->SetBoolProperty(m_ulPropertyContainer, Prop_Firmware_RemindUpdate_Bool, false);
 	vr::VRProperties()->SetInt32Property(m_ulPropertyContainer, Prop_ControllerRoleHint_Int32, TrackedControllerRole_Invalid);
+	
+	//vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_ControllerType_String, "vive_tracker_handed");
 	vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_ControllerType_String, "vive_tracker_waist");
+	
 	vr::VRProperties()->SetInt32Property(m_ulPropertyContainer, Prop_ControllerHandSelectionPriority_Int32, -1);
 
 	vr::VRProperties()->SetBoolProperty(m_ulPropertyContainer, Prop_HasDisplayComponent_Bool, false);
@@ -60,10 +78,11 @@ EVRInitError RemoteTracker::Activate(vr::TrackedDeviceIndex_t unObjectId)
 	vr::VRProperties()->SetBoolProperty(m_ulPropertyContainer, Prop_HasDriverDirectModeComponent_Bool, false);
 	vr::VRProperties()->SetBoolProperty(m_ulPropertyContainer, Prop_HasVirtualDisplayComponent_Bool, false);
 
+	vr::VRProperties()->SetUint64Property(m_ulPropertyContainer, vr::Prop_CurrentUniverseId_Uint64, 2);
+
 	// create our haptic component
 	vr::VRDriverInput()->CreateHapticComponent(m_ulPropertyContainer, "/output/haptic", &m_compHaptic);
 
-	vr::VRSettings()->SetString(k_pch_Trackers_Section, "/devices/owoTrack/VIRT_TRACK00", "TrackerRole_Waist");
 
 	try {
 		dataserver->startListening();

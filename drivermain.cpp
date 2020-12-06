@@ -51,13 +51,14 @@ private:
 		defaults.use_global_offset_space = true;
 		defaults.yaw_offset = 0.0;
 
+		defaults.should_predict_position = false;
+
 		UDPDeviceQuatServer* server = new UDPDeviceQuatServer(port);
 		RemoteTracker *tracker = new RemoteTracker(server, id, defaults);
 		vr::VRServerDriverHost()->TrackedDeviceAdded(tracker->GetSerialNumber().c_str(), vr::TrackedDeviceClass_GenericTracker, tracker);
 		
 		trackers.insert({ id, tracker });
 	}
-	int primary_tracker_added = 0;
 
 	std::map<int, RemoteTracker*> trackers;
 	TrackedDevicePose_t* poses;
@@ -72,6 +73,45 @@ EVRInitError RemoteTrackerServerDriver::Init( vr::IVRDriverContext *pDriverConte
 	InitDriverLog( vr::VRDriverLog() );
 	poses = (TrackedDevicePose_t *)malloc(sizeof(TrackedDevicePose_t) * k_unMaxTrackedDeviceCount);
 
+
+	std::thread* tracker_init = new std::thread([&] {
+
+		// wait until controllers are found
+		// so as to avoid stealing input
+		while (true) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+			int hands_count = 0;
+			for (int i = 0; i < k_unMaxTrackedDeviceCount; i++) {
+				auto propertyContainer = vr::VRProperties()->TrackedDeviceToPropertyContainer(i);
+
+				ETrackedPropertyError err;
+
+				ETrackedDeviceClass deviceClass = (ETrackedDeviceClass)
+						vr::VRProperties()->GetInt32Property(propertyContainer, Prop_DeviceClass_Int32, &err);
+				if (err) continue;
+
+				if (deviceClass != TrackedDeviceClass_Controller) continue;
+
+				ETrackedControllerRole role = (ETrackedControllerRole)
+						vr::VRProperties()->GetInt32Property(propertyContainer, Prop_ControllerRoleHint_Int32, &err);
+				if (err) continue;
+
+				if ((role == TrackedControllerRole_LeftHand) || (role == TrackedControllerRole_RightHand)) {
+					hands_count++;
+				}
+			}
+
+			if (hands_count >= 2) {
+				// wait for a moment longer because i dont trust like that
+				std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+				break;
+			}
+		}
+		add_tracker(0, 6969);
+
+		return;
+	});
 
 	return VRInitError_None;
 }
@@ -99,17 +139,6 @@ void RemoteTrackerServerDriver::RunFrame()
 		for (auto v : trackers) {
 			((RemoteTracker*)v.second)->ProcessEvent(vrEvent);
 		}
-	}
-
-
-	// we absollutely do NOT want to be added as the first tracker, as it may break stuff while
-	// controllers are not present
-	if (primary_tracker_added < 400) {
-		primary_tracker_added += 1;
-	}
-	else if (primary_tracker_added < 50000) {
-		primary_tracker_added = 100000;
-		add_tracker(0, 6969);
 	}
 }
 
