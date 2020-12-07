@@ -1,5 +1,6 @@
 #pragma once
 #include <openvr_driver.h>
+#include "vector3.h"
 using namespace vr;
 
 // override an axis
@@ -15,12 +16,8 @@ struct RemoteTrackerSettings {
 	unsigned int anchor_device_id;
 
 	// meters to offset from the anchor device
-	double offset_position[3];
-
-	// if true, uses global space to perform offsets
-	// if false, the offset is done relative to the rotation
-	// of anchor device
-	bool use_global_offset_space;
+	Vector3 offset_global;
+	Vector3 offset_local;
 
 	// yaw offset (true north vs vr north)
 	double yaw_offset;

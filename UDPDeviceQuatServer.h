@@ -21,6 +21,7 @@ private:
 	bool more_data_exists__read();
 
 	unsigned long long last_contact_time = 0;
+	unsigned long long curr_time = 0;
 
 	bool connectionIsDead = false;
 

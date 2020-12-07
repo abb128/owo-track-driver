@@ -49,13 +49,15 @@ void UDPDeviceQuatServer::startListening() {
 
 bool UDPDeviceQuatServer::more_data_exists__read() {
 	// read header
+	curr_time = static_cast<unsigned long long>(std::time(nullptr));
+
 	bool is_recv = Socket.RecvFrom(buffer, MAX_MSG_SIZE, reinterpret_cast<SOCKADDR*>(&client));
 	if (!is_recv) return false;
 
 	message_header_type_t msg_type = convert_chars<message_header_type_t>((unsigned char*)buffer);
 
 
-	last_contact_time = static_cast<unsigned long long>(std::time(nullptr));
+	last_contact_time = curr_time;
 	connectionIsDead = false;
 
 	switch (msg_type) {
@@ -89,7 +91,6 @@ bool UDPDeviceQuatServer::isConnectionAlive() {
 	if (connectionIsDead)
 		return false;
 
-	unsigned long long curr_time = static_cast<unsigned long long>(std::time(nullptr));
 	if ((curr_time - last_contact_time) > 2)
 		connectionIsDead = true;
 

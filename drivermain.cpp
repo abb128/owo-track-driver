@@ -44,11 +44,9 @@ private:
 		RemoteTrackerSettings defaults;
 
 		defaults.anchor_device_id = 0;
-		defaults.offset_position[0] = 0.0;
-		defaults.offset_position[1] = -0.70;
-		defaults.offset_position[2] = 0.0;
+		defaults.offset_global = Vector3(0.0, -0.73, 0.0); 
+		defaults.offset_local = Vector3(0.0, 0.0, 0.0); 
 
-		defaults.use_global_offset_space = true;
 		defaults.yaw_offset = 0.0;
 
 		defaults.should_predict_position = false;
@@ -78,6 +76,7 @@ EVRInitError RemoteTrackerServerDriver::Init( vr::IVRDriverContext *pDriverConte
 
 		// wait until controllers are found
 		// so as to avoid stealing input
+		int bypass_counter = 0;
 		while (true) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -102,11 +101,16 @@ EVRInitError RemoteTrackerServerDriver::Init( vr::IVRDriverContext *pDriverConte
 				}
 			}
 
-			if (hands_count >= 2) {
+			if ((hands_count >= 2) || (bypass_counter >= 4)) {
 				// wait for a moment longer because i dont trust like that
 				std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 				break;
 			}
+
+			if ((0x01 & GetAsyncKeyState('Y')) != 0) {
+				bypass_counter++;
+			}
+
 		}
 		add_tracker(0, 6969);
 

@@ -37,6 +37,7 @@ RemoteTracker::~RemoteTracker()
 
 EVRInitError RemoteTracker::Activate(vr::TrackedDeviceIndex_t unObjectId)
 {
+	// i have no clue
 	vr::VRSettings()->SetString(k_pch_Trackers_Section, "/devices/owoTrack/VIRT_TRACK00", "TrackerRole_Waist");
 	vr::VRSettings()->SetString(k_pch_Trackers_Section, "/htc/vive_tracker/VIRT_TRACK00", "TrackerRole_Waist");
 
@@ -55,20 +56,15 @@ EVRInitError RemoteTracker::Activate(vr::TrackedDeviceIndex_t unObjectId)
 
 	vr::VRProperties()->SetInt32Property(m_ulPropertyContainer, Prop_DeviceClass_Int32, TrackedDeviceClass_GenericTracker);
 
-	//vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_InputProfilePath_String, "{owoTrack}/input/remote_profile.json");
-
 	std::string l_registeredType("htc/vive_tracker");
 	l_registeredType.append(m_sSerialNumber);
 	vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_RegisteredDeviceType_String, l_registeredType.c_str());
-
-	//vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_InputProfilePath_String, "{htc}/input/vive_tracker_profile.json");
 	vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_InputProfilePath_String, "{owoTrack}/input/remote_profile.json");
 
 	vr::VRProperties()->SetBoolProperty(m_ulPropertyContainer, Prop_Identifiable_Bool, true);
 	vr::VRProperties()->SetBoolProperty(m_ulPropertyContainer, Prop_Firmware_RemindUpdate_Bool, false);
-	vr::VRProperties()->SetInt32Property(m_ulPropertyContainer, Prop_ControllerRoleHint_Int32, TrackedControllerRole_Invalid);
+	vr::VRProperties()->SetInt32Property(m_ulPropertyContainer, Prop_ControllerRoleHint_Int32, TrackedControllerRole_Invalid); // should this be OptOut? see IsRoleAllowedAsHand
 	
-	//vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_ControllerType_String, "vive_tracker_handed");
 	vr::VRProperties()->SetStringProperty(m_ulPropertyContainer, Prop_ControllerType_String, "vive_tracker_waist");
 	
 	vr::VRProperties()->SetInt32Property(m_ulPropertyContainer, Prop_ControllerHandSelectionPriority_Int32, -1);
@@ -207,6 +203,25 @@ DriverPose_t RemoteTracker::GetPose()
 	return pose;
 }
 
+inline double get_yaw(Basis basis, Vector3 front_v) {
+	// xform to get front vector (up points front)
+	Vector3 front_relative = basis.xform(front_v);
+
+
+	// flatten to XZ for yaw
+	front_relative = (front_relative * Vector3(1, 0, 1)).normalized();
+
+	// get angle
+	double angle = front_relative.angle_to(Vector3(0, 0, 1));
+
+	// convert to offset (idk why front_relative.x works)
+	return -angle * Math::sign(front_relative.x);
+}
+
+inline double get_yaw(Quat quat) {
+	return get_yaw(Basis(quat), Vector3(0, 1, 0));
+}
+
 void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 {
 	try {
@@ -231,11 +246,29 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 	pose.deviceIsConnected = true;
 
 
+	Basis offset_basis;
+
+	Vector3 offset_global = settings.offset_global;
+	Vector3 offset_local = settings.offset_local;
+
+
 	if ((settings.anchor_device_id >= 0) && (poses)) {
 		TrackedDevicePose_t anchor = poses[settings.anchor_device_id];
 		for (int i = 0; i < 3; i++) {
 			pose.vecPosition[i] = anchor.mDeviceToAbsoluteTracking.m[i][3];
 		}
+
+		offset_basis.set(
+			anchor.mDeviceToAbsoluteTracking.m[0][0],
+			anchor.mDeviceToAbsoluteTracking.m[0][1],
+			anchor.mDeviceToAbsoluteTracking.m[0][2],
+			anchor.mDeviceToAbsoluteTracking.m[1][0],
+			anchor.mDeviceToAbsoluteTracking.m[1][1],
+			anchor.mDeviceToAbsoluteTracking.m[1][2],
+			anchor.mDeviceToAbsoluteTracking.m[2][0],
+			anchor.mDeviceToAbsoluteTracking.m[2][1],
+			anchor.mDeviceToAbsoluteTracking.m[2][2]
+		);
 
 		/*
 		auto props = vr::VRProperties()->TrackedDeviceToPropertyContainer(settings.anchor_device_id);
@@ -251,6 +284,7 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 		*/
 	}
 	else {
+		offset_basis.set_euler(Vector3());
 		for (int i = 0; i < 3; i++) {
 			pose.vecPosition[i] = 0.0;
 			pose.vecVelocity[i] = 0.0;
@@ -263,11 +297,7 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 		pose.vecPosition[1] = settings.y_override.to;
 	if (settings.z_override.enabled)
 		pose.vecPosition[2] = settings.z_override.to;
-
-
-	for (int i = 0; i < 3; i++) {
-		pose.vecPosition[i] += settings.offset_position[i];
-	}
+	
 
 	double* acceleration = dataserver->getAccel();
 	pose.vecAcceleration[0] = acceleration[0];
@@ -284,33 +314,11 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 	quat = Quat(Vector3(1, 0, 0), -Math_PI / 2.0) * quat;
 
 	if (is_calibrating) {
-		Basis basis(quat);
-		Vector3 front(0, 0, 1);
-
-		// xform to get front vector (up points front)
-		Vector3 front_relative = basis.xform(Vector3(0, 1, 0));
-
-		//DriverLog("Front: %.2f   %.2f   %.2f ", front_relative.x, front_relative.y, front_relative.z);
-
-
-		// flatten to XZ for yaw
-		front_relative = (front_relative * Vector3(1, 0, 1)).normalized();
-
-		// get angle
-		double angle = front_relative.angle_to(front);
-
-		//DriverLog("Angle: %.3f ", angle);
-
-		// convert to offset (idk why front_relative.x works)
-		settings.yaw_offset = -angle * Math::sign(front_relative.x);
-
-		for (int i = 0; i < 3; i++) {
-			pose.vecPosition[i] = 0.0;
-		}
-		pose.vecPosition[1] = 1.5;
+		settings.yaw_offset = (get_yaw(quat)) - (get_yaw(offset_basis, Vector3(0, 0, -1)));
+		offset_global = (offset_basis.xform(Vector3(0, 0, -1)) * Vector3(1, 0, 1)).normalized() + Vector3(0, 0.2, 0);
+		offset_local = Vector3(0, 0, 0);
 	}
 
-	//DriverLog("Yaw_Offset = %.2f ", settings.yaw_offset);
 
 	quat = Quat(Vector3(0, 1, 0), settings.yaw_offset) * quat;
 
@@ -319,6 +327,13 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 	double* gyro = dataserver->getGyroscope();
 	for (int i = 0; i < 3; i++) {
 		pose.vecAngularVelocity[i] = 0;//gyro[i];
+	}
+
+
+
+	for (int i = 0; i < 3; i++) {
+		pose.vecPosition[i] += offset_global.get_axis(i);
+		pose.vecPosition[i] += offset_basis.xform(offset_local).get_axis(i);
 	}
 
 
