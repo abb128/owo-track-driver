@@ -11,6 +11,8 @@
 
 #include "PositionPredictor.h"
 
+#include "owoIPC.h"
+
 using namespace vr;
 
 class RemoteTracker : public vr::ITrackedDeviceServerDriver {
@@ -33,7 +35,19 @@ private:
 
 	bool is_calibrating = false;
 
+
+	template<typename T>
+	owoEvent give_value(T local_val, owoEvent ev);
+
+	template <typename T>
+	owoEvent set_setting_or_give_value(T& local_val, owoEvent ev);
+
+	owoEvent handle_vector(Vector3& local_val, owoEvent ev);
+
 public:
+	unsigned int id = 0;
+	unsigned int port_no = 0;
+
 	RemoteTracker(DeviceQuatServer* server, const int& id, RemoteTrackerSettings settings_v);
 
 	virtual ~RemoteTracker();
@@ -58,4 +72,8 @@ public:
 
 	void ProcessEvent(const vr::VREvent_t& vrEvent);
 	std::string GetSerialNumber() const;
+
+	void send_invalid_pose();
+
+	owoEvent process_request(owoEvent ev);
 };

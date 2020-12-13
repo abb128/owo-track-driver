@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="drivermain.cpp" />
+    <ClCompile Include="PositionPredictor.cpp" />
+    <ClCompile Include="RemoteTracker.cpp" />
+    <ClCompile Include="basis.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="vector3.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="quaternion.h">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="quat.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="ByteBuffer.cpp">
+      <Filter>thirdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="NetworkedDeviceQuatServer.cpp">
+      <Filter>servers</Filter>
+    </ClCompile>
+    <ClCompile Include="UDPDeviceQuatServer.cpp">
+      <Filter>servers</Filter>
+    </ClCompile>
+    <ClCompile Include="driverlog.cpp">
+      <Filter>thirdparty</Filter>
+    </ClCompile>
+    <ClCompile Include="RemoteTrackerDriver.cpp" />
+    <ClCompile Include="win32ipc.cpp">
+      <Filter>IPC</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="PositionPredictor.h" />
+    <ClInclude Include="RemoteTracker.h" />
+    <ClInclude Include="RemoteTrackerSettings.h" />
+    <ClInclude Include="util.h" />
+    <ClInclude Include="basis.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="vector3.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="quat.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="ByteBuffer.h">
+      <Filter>thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="Network.h">
+      <Filter>thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="shared.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceQuatServer.h">
+      <Filter>servers</Filter>
+    </ClInclude>
+    <ClInclude Include="NetworkedDeviceQuatServer.h">
+      <Filter>servers</Filter>
+    </ClInclude>
+    <ClInclude Include="UDPDeviceQuatServer.h">
+      <Filter>servers</Filter>
+    </ClInclude>
+    <ClInclude Include="driverlog.h">
+      <Filter>thirdparty</Filter>
+    </ClInclude>
+    <ClInclude Include="RemoteTrackerDriver.h" />
+    <ClInclude Include="abstract_ipc.h">
+      <Filter>IPC</Filter>
+    </ClInclude>
+    <ClInclude Include="win32ipc.h">
+      <Filter>IPC</Filter>
+    </ClInclude>
+    <ClInclude Include="logging.h">
+      <Filter>IPC</Filter>
+    </ClInclude>
+    <ClInclude Include="owoIPC.h">
+      <Filter>IPC</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="math">
+      <UniqueIdentifier>{d1db3f4b-2a8b-4d23-a263-1b509098b727}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="thirdparty">
+      <UniqueIdentifier>{fb2c3bfa-93ff-40f3-b36f-70d27263eb14}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="servers">
+      <UniqueIdentifier>{827d5b76-42fb-40c8-82cd-956f526f7dc0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="IPC">
+      <UniqueIdentifier>{f0ce0219-5578-4922-858c-34fbdbe6eeb2}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

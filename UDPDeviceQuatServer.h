@@ -38,4 +38,6 @@ public:
 	bool isConnectionAlive();
 
 	void buzz(float duration_s, float frequency, float amplitude);
+
+	int get_port();
 };

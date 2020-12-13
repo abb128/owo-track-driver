@@ -130,6 +130,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -150,6 +151,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -169,16 +171,22 @@
     <ClCompile Include="quat.cpp" />
     <ClCompile Include="RemoteTracker.cpp" />
     <ClCompile Include="quaternion.h" />
+    <ClCompile Include="RemoteTrackerDriver.cpp" />
     <ClCompile Include="UDPDeviceQuatServer.cpp" />
     <ClCompile Include="vector3.cpp" />
+    <ClCompile Include="win32ipc.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="abstract_ipc.h" />
     <ClInclude Include="basis.h" />
     <ClInclude Include="ByteBuffer.h" />
     <ClInclude Include="DeviceQuatServer.h" />
     <ClInclude Include="driverlog.h" />
+    <ClInclude Include="logging.h" />
+    <ClInclude Include="owoIPC.h" />
     <ClInclude Include="PositionPredictor.h" />
     <ClInclude Include="quat.h" />
+    <ClInclude Include="RemoteTrackerDriver.h" />
     <ClInclude Include="shared.h" />
     <ClInclude Include="Network.h" />
     <ClInclude Include="NetworkedDeviceQuatServer.h" />
@@ -187,6 +195,7 @@
     <ClInclude Include="UDPDeviceQuatServer.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="vector3.h" />
+    <ClInclude Include="win32ipc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

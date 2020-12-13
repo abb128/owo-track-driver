@@ -15,9 +15,14 @@ struct RemoteTrackerSettings {
 	// with all offsets done from (0, 0, 0)
 	unsigned int anchor_device_id;
 
-	// meters to offset from the anchor device
+	// meters to offset in global space
 	Vector3 offset_global;
-	Vector3 offset_local;
+
+	// meters to offset in anchor device space
+	Vector3 offset_local_device;
+
+	// meters to offset in local tracker space
+	Vector3 offset_local_tracker;
 
 	// yaw offset (true north vs vr north)
 	double yaw_offset;

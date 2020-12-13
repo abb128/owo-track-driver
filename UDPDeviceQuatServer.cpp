@@ -106,3 +106,7 @@ void UDPDeviceQuatServer::buzz(float duration_s, float frequency, float amplitud
 
 	send_bytebuffer(buff);
 }
+
+int UDPDeviceQuatServer::get_port(){
+	return portno;
+}

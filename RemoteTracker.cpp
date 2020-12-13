@@ -16,18 +16,20 @@
 
 using namespace vr;
 
-RemoteTracker::RemoteTracker(DeviceQuatServer *server, const int& id, RemoteTrackerSettings settings_v) {
+RemoteTracker::RemoteTracker(DeviceQuatServer *server, const int& id_v, RemoteTrackerSettings settings_v) {
 	m_unObjectId = vr::k_unTrackedDeviceIndexInvalid;
 	m_ulPropertyContainer = vr::k_ulInvalidPropertyContainer;
 
-	m_sSerialNumber = "VIRT_TRACK00";// + std::to_string(id);
-
-	m_sModelNumber = "VirtualTracker" + std::to_string(id);
+	m_sSerialNumber = "OWO_TRACKER_" + std::to_string(id_v);
+	m_sModelNumber = "OwoTracker_" + std::to_string(id_v);
 
 	dataserver = server;
 	settings = settings_v;
 
 	worldFromDriverRot = quaternion::init(0, 0, 0, 1);
+	
+	id = id_v;
+	port_no = dataserver->get_port();
 }
 
 RemoteTracker::~RemoteTracker()
@@ -37,9 +39,11 @@ RemoteTracker::~RemoteTracker()
 
 EVRInitError RemoteTracker::Activate(vr::TrackedDeviceIndex_t unObjectId)
 {
-	// i have no clue
-	vr::VRSettings()->SetString(k_pch_Trackers_Section, "/devices/owoTrack/VIRT_TRACK00", "TrackerRole_Waist");
-	vr::VRSettings()->SetString(k_pch_Trackers_Section, "/htc/vive_tracker/VIRT_TRACK00", "TrackerRole_Waist");
+	//vr::VRSettings()->SetString(k_pch_Trackers_Section, ("/devices/owoTrack/" + m_sSerialNumber).c_str(), "TrackerRole_Waist");
+	//vr::VRSettings()->SetString(k_pch_Trackers_Section, ("/htc/vive_tracker/" + m_sSerialNumber).c_str(), "TrackerRole_Waist");
+
+	// works for some reason if there is no slash
+	vr::VRSettings()->SetString(k_pch_Trackers_Section, ("/devices/htc/vive_tracker" + m_sSerialNumber).c_str(), "TrackerRole_Waist");
 
 
 
@@ -203,6 +207,81 @@ DriverPose_t RemoteTracker::GetPose()
 	return pose;
 }
 
+
+void RemoteTracker::send_invalid_pose() {
+	DriverPose_t pose = GetPose();
+
+	VRServerDriverHost()->TrackedDevicePoseUpdated(m_unObjectId, pose, sizeof(pose));
+}
+
+
+template<typename T>
+inline owoEvent RemoteTracker::give_value(T local_val, owoEvent ev) {
+	owoEvent ret_event = {};
+	ret_event.type = TRACKER_SETTING_RECEIVED;
+
+	owoEventTrackerSetting s = {};
+	s.type = ev.trackerSetting.type;
+	s.tracker_id = id;
+
+	get_ref_from_setting_event<T>(s) = local_val;
+
+
+	ret_event.trackerSetting = s;
+
+	return ret_event;
+}
+
+
+template<typename T>
+inline owoEvent RemoteTracker::set_setting_or_give_value(T& local_val, owoEvent ev){
+	if (ev.type == SET_TRACKER_SETTING) {
+		local_val = get_ref_from_setting_event<T>(ev.trackerSetting);
+		return noneEvent;
+	} else {
+		return give_value(local_val, ev);
+	}
+}
+
+
+inline owoEvent RemoteTracker::handle_vector(Vector3& local_val, owoEvent ev) {
+	owoEventVector tmp = { local_val.x, local_val.y, local_val.z };
+	owoEvent result = set_setting_or_give_value(tmp, ev);
+
+	if (result.type == INVALID_EVENT) {
+		local_val.x = tmp.x;
+		local_val.y = tmp.y;
+		local_val.z = tmp.z;
+	}
+
+	return result;
+}
+
+owoEvent RemoteTracker::process_request(owoEvent ev){
+	owoEventTrackerSetting s = ev.trackerSetting;
+	switch (s.type) {
+		case ANCHOR_DEVICE_ID:
+			return set_setting_or_give_value(settings.anchor_device_id, ev);
+		case YAW_VALUE:
+			return set_setting_or_give_value(settings.yaw_offset, ev);
+		case PREDICT_POSITION_STRENGTH:
+			return set_setting_or_give_value(settings.position_prediction_strength, ev);
+		case PREDICT_POSITION:
+			return set_setting_or_give_value(settings.should_predict_position, ev);
+		case IS_CALIBRATING:
+			return set_setting_or_give_value(is_calibrating, ev);
+		case IS_CONN_ALIVE: 
+			return give_value(dataserver->isConnectionAlive(), ev);
+		case OFFSET_GLOBAL:
+			return handle_vector(settings.offset_global, ev);
+		case OFFSET_LOCAL_TO_DEVICE:
+			return handle_vector(settings.offset_local_device, ev);
+		case OFFSET_LOCAL_TO_TRACKER:
+			return handle_vector(settings.offset_local_tracker, ev);
+	}
+	return noneEvent;
+}
+
 inline double get_yaw(Basis basis, Vector3 front_v) {
 	// xform to get front vector (up points front)
 	Vector3 front_relative = basis.xform(front_v);
@@ -218,9 +297,12 @@ inline double get_yaw(Basis basis, Vector3 front_v) {
 	return -angle * Math::sign(front_relative.x);
 }
 
+
+
 inline double get_yaw(Quat quat) {
 	return get_yaw(Basis(quat), Vector3(0, 1, 0));
 }
+
 
 void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 {
@@ -234,9 +316,7 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 
 	if (!dataserver->isDataAvailable()) {
 		if (!dataserver->isConnectionAlive()) {
-			DriverPose_t pose = GetPose();
-
-			VRServerDriverHost()->TrackedDevicePoseUpdated(m_unObjectId, pose, sizeof(pose));
+			send_invalid_pose();
 		}
 		return;
 	}
@@ -249,7 +329,8 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 	Basis offset_basis;
 
 	Vector3 offset_global = settings.offset_global;
-	Vector3 offset_local = settings.offset_local;
+	Vector3 offset_local_device = settings.offset_local_device;
+	Vector3 offset_local_tracker = settings.offset_local_tracker;
 
 
 	if ((settings.anchor_device_id >= 0) && (poses)) {
@@ -316,7 +397,8 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 	if (is_calibrating) {
 		settings.yaw_offset = (get_yaw(quat)) - (get_yaw(offset_basis, Vector3(0, 0, -1)));
 		offset_global = (offset_basis.xform(Vector3(0, 0, -1)) * Vector3(1, 0, 1)).normalized() + Vector3(0, 0.2, 0);
-		offset_local = Vector3(0, 0, 0);
+		offset_local_device = Vector3(0, 0, 0);
+		offset_local_tracker = Vector3(0, 0, 0);
 	}
 
 
@@ -329,16 +411,18 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 		pose.vecAngularVelocity[i] = 0;//gyro[i];
 	}
 
-
+	Basis final_tracker_basis = Basis(quat);
 
 	for (int i = 0; i < 3; i++) {
 		pose.vecPosition[i] += offset_global.get_axis(i);
-		pose.vecPosition[i] += offset_basis.xform(offset_local).get_axis(i);
+		pose.vecPosition[i] += offset_basis.xform(offset_local_device).get_axis(i);
+		pose.vecPosition[i] += final_tracker_basis.xform(offset_local_tracker).get_axis(i);
 	}
 
 
 	if ((!is_calibrating) && settings.should_predict_position) {
-		Vector3 result = pos_predict.predict(*dataserver, Basis(quat)) * settings.position_prediction_strength;
+		Basis b = Basis(quat);
+		Vector3 result = pos_predict.predict(*dataserver, b) * settings.position_prediction_strength;
 
 		pose.vecPosition[0] += result.x;
 		pose.vecPosition[1] += result.y;

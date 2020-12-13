@@ -16,4 +16,6 @@ public:
 	virtual bool isConnectionAlive() = 0; // checks if connection is still alive
 
 	virtual void buzz(float duration_s, float frequency, float amplitude) = 0; // vibrates
+
+	virtual int get_port() = 0; // returns port or other unique id
 };
