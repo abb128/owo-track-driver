@@ -23,6 +23,9 @@ enum owoTrackerSettingType {
 	OFFSET_LOCAL_TO_DEVICE,	// vector
 	OFFSET_LOCAL_TO_TRACKER,// vector
 
+	OFFSET_ROT_GLOBAL, // vector
+	OFFSET_ROT_LOCAL,  // vector
+
 	YAW_VALUE,				// double_v
 
 	PREDICT_POSITION,		// bool_v
@@ -101,6 +104,8 @@ inline T& get_ref_from_setting_event(owoEventTrackerSetting& ev) {
 	case OFFSET_GLOBAL:
 	case OFFSET_LOCAL_TO_DEVICE:
 	case OFFSET_LOCAL_TO_TRACKER:
+	case OFFSET_ROT_GLOBAL:
+	case OFFSET_ROT_LOCAL:
 		return (T&)ev.vector;
 	}
 }

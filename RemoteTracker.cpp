@@ -278,6 +278,10 @@ owoEvent RemoteTracker::process_request(owoEvent ev){
 			return handle_vector(settings.offset_local_device, ev);
 		case OFFSET_LOCAL_TO_TRACKER:
 			return handle_vector(settings.offset_local_tracker, ev);
+		case OFFSET_ROT_GLOBAL:
+			return handle_vector(settings.global_rot_euler, ev);
+		case OFFSET_ROT_LOCAL:
+			return handle_vector(settings.local_rot_euler, ev);
 	}
 	return noneEvent;
 }
@@ -403,6 +407,9 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 
 
 	quat = Quat(Vector3(0, 1, 0), settings.yaw_offset) * quat;
+
+	quat = Quat(settings.global_rot_euler) * quat;
+	quat = quat * Quat(settings.local_rot_euler);
 
 	pose.qRotation = quaternion::from_Quat(quat);
 

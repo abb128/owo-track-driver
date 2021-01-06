@@ -27,6 +27,10 @@ struct RemoteTrackerSettings {
 	// yaw offset (true north vs vr north)
 	double yaw_offset;
 
+	// rotation = (Quat(global_rot_euler) * rotation) * Quat(local_rot_euler)
+	Vector3 global_rot_euler; // radians btw
+	Vector3 local_rot_euler; // still radians
+
 	// override axises
 	AxisOverride x_override = { false, 0.0 };
 	AxisOverride y_override = { false, 0.0 };

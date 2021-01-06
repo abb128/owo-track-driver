@@ -19,6 +19,9 @@ int RemoteTrackerDriver::add_tracker(const int& port) {
 	defaults.offset_local_device = Vector3(0.0, 0.0, 0.0);
 	defaults.offset_local_tracker = Vector3(0.0, -0.73, 0.0);
 
+	defaults.local_rot_euler = Vector3(0.0, 0.0, 0.0);
+	defaults.global_rot_euler = Vector3(0.0, 0.0, 0.0);
+
 	defaults.yaw_offset = 0.0;
 
 	defaults.should_predict_position = false;
@@ -96,7 +99,7 @@ void RemoteTrackerDriver::Cleanup() {
 }
 
 
-constexpr unsigned int CURR_VERSION = 6;
+constexpr unsigned int CURR_VERSION = 7;
 
 owoEvent RemoteTrackerDriver::handle_event(const owoEvent& ev) {
 	switch (ev.type) {
