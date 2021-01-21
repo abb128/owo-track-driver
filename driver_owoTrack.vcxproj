@@ -166,6 +166,7 @@
     <ClCompile Include="ByteBuffer.cpp" />
     <ClCompile Include="driverlog.cpp" />
     <ClCompile Include="drivermain.cpp" />
+    <ClCompile Include="InfoServer.cpp" />
     <ClCompile Include="NetworkedDeviceQuatServer.cpp" />
     <ClCompile Include="PositionPredictor.cpp" />
     <ClCompile Include="quat.cpp" />
@@ -182,6 +183,7 @@
     <ClInclude Include="ByteBuffer.h" />
     <ClInclude Include="DeviceQuatServer.h" />
     <ClInclude Include="driverlog.h" />
+    <ClInclude Include="InfoServer.h" />
     <ClInclude Include="logging.h" />
     <ClInclude Include="owoIPC.h" />
     <ClInclude Include="PositionPredictor.h" />

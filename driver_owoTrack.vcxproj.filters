@@ -32,6 +32,9 @@
     <ClCompile Include="win32ipc.cpp">
       <Filter>IPC</Filter>
     </ClCompile>
+    <ClCompile Include="InfoServer.cpp">
+      <Filter>servers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PositionPredictor.h" />
@@ -80,6 +83,9 @@
     </ClInclude>
     <ClInclude Include="owoIPC.h">
       <Filter>IPC</Filter>
+    </ClInclude>
+    <ClInclude Include="InfoServer.h">
+      <Filter>servers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

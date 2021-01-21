@@ -33,6 +33,8 @@ int RemoteTrackerDriver::add_tracker(const int& port) {
 	trackers.push_back(tracker);
 	ports_taken.insert({ port, true });
 
+	srv.add_tracker(tracker);
+
 	return (int)id;
 }
 
@@ -192,4 +194,6 @@ void RemoteTrackerDriver::RunFrame() {
 			((RemoteTracker*)v)->ProcessEvent(vrEvent);
 		}
 	}
+
+	srv.tick();
 }

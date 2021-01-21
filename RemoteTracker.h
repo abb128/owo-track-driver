@@ -76,4 +76,6 @@ public:
 	void send_invalid_pose();
 
 	owoEvent process_request(owoEvent ev);
+
+	std::string get_description();
 };

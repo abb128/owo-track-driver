@@ -286,6 +286,10 @@ owoEvent RemoteTracker::process_request(owoEvent ev){
 	return noneEvent;
 }
 
+std::string RemoteTracker::get_description(){
+	return "Tracker " + std::to_string(id);
+}
+
 inline double get_yaw(Basis basis, Vector3 front_v) {
 	// xform to get front vector (up points front)
 	Vector3 front_relative = basis.xform(front_v);

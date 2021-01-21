@@ -92,6 +92,6 @@ public:
             throw std::system_error(WSAGetLastError(), std::system_category(), "Bind failed");
     }
 
-private:
+//private:
     SOCKET sock;
 };

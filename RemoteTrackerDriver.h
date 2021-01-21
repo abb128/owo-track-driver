@@ -9,6 +9,8 @@
 
 #include "owoIPC.h"
 
+#include "InfoServer.h"
+
 class RemoteTrackerDriver : public IServerTrackedDeviceProvider {
 private:
 	int add_tracker(const int& port);
@@ -23,6 +25,8 @@ private:
 	void tick_ipc();
 
 	bool should_bypass_waiting = false;
+
+	InfoServer srv;
 
 public:
 	virtual EVRInitError Init(vr::IVRDriverContext* pDriverContext);
