@@ -92,7 +92,7 @@ void HipMoveController::RunFrame(TrackedDevicePose_t* poses)
 	float new_y = sin(angle - diff) * magnitude;
 
 
-	DriverLog("HipMove enabled, (hmd %.2f, tracker %.2f).... initial (%.2f, %.2f), diff (%.2f), new (%.2f, %.2f)", hmdYaw, trackerYaw, analog_data.x, analog_data.y, diff, new_x, new_y);
+	// DriverLog("HipMove enabled, (hmd %.2f, tracker %.2f).... initial (%.2f, %.2f), diff (%.2f), new (%.2f, %.2f)", hmdYaw, trackerYaw, analog_data.x, analog_data.y, diff, new_x, new_y);
 
 	SetDirection(new_x, new_y);
 }
