@@ -44,6 +44,8 @@ class RemoteTracker : public AbstractDevice {
 
 		void update_pose_if_needed(TrackedDevicePose_t* poses);
 
+		bool activated = false;
+
 	public:
 		unsigned int id = 0;
 		unsigned int port_no = 0;

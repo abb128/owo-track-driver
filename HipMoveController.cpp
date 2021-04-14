@@ -58,9 +58,18 @@ void HipMoveController::DebugRequest(const char* pchRequest, char* pchResponseBu
 {
 }
 
-DriverPose_t HipMoveController::GetPose()
-{
-	return DriverPose_t();
+DriverPose_t HipMoveController::GetPose() {
+	DriverPose_t pose = { 0 };
+	pose.poseIsValid = false;
+	pose.result = TrackingResult_Calibrating_OutOfRange;
+	pose.deviceIsConnected = false;
+
+	pose.vecPosition[0] = 9999999;
+	pose.vecPosition[1] = 9999999;
+	pose.vecPosition[2] = 9999999;
+
+
+	return pose;
 }
 
 void HipMoveController::RunFrame(TrackedDevicePose_t* poses)

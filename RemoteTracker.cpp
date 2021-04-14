@@ -82,6 +82,8 @@ EVRInitError RemoteTracker::Activate(vr::TrackedDeviceIndex_t unObjectId)
 		return VRInitError_Driver_Failed;
 	}
 
+	activated = true;
+
 	return VRInitError_None;
 }
 
@@ -369,6 +371,8 @@ void RemoteTracker::update_pose_if_needed(TrackedDevicePose_t* poses) {
 }
 
 void RemoteTracker::RunFrame(TrackedDevicePose_t* poses) {
+	if (!activated) return;
+
 	update_pose_if_needed(poses);
 	if (associated_controller) {
 		associated_controller->RunFrame(poses);
