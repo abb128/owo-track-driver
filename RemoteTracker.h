@@ -13,69 +13,69 @@
 
 #include "owoIPC.h"
 
-using namespace vr;
+#include "AbstractDevice.h"
 
-class RemoteTracker : public vr::ITrackedDeviceServerDriver {
-private:
-	vr::TrackedDeviceIndex_t m_unObjectId;
-	vr::PropertyContainerHandle_t m_ulPropertyContainer;
+#include "HipMoveController.h"
 
-	vr::VRInputComponentHandle_t m_compHaptic;
+class RemoteTracker : public AbstractDevice {
+	private:
+		vr::VRInputComponentHandle_t haptic;
 
-	std::string m_sSerialNumber;
-	std::string m_sModelNumber;
+		RemoteTrackerSettings settings;
+		DeviceQuatServer* dataserver;
+		PositionPredictor pos_predict;
 
-	DeviceQuatServer* dataserver;
+		bool is_calibrating = false;
+		bool is_down_calibrating = false;
 
-	vr::HmdQuaternion_t worldFromDriverRot;
+		Basis last_basis;
 
-	RemoteTrackerSettings settings;
+		HipMoveController* associated_controller = 0;
 
-	PositionPredictor pos_predict;
+		owoEvent handle_controller(owoEvent ev);
 
-	bool is_calibrating = false;
+		template<typename T>
+		owoEvent give_value(T local_val, owoEvent ev);
 
+		template <typename T>
+		owoEvent set_setting_or_give_value(T& local_val, owoEvent ev);
 
-	template<typename T>
-	owoEvent give_value(T local_val, owoEvent ev);
+		owoEvent handle_vector(Vector3& local_val, owoEvent ev);
 
-	template <typename T>
-	owoEvent set_setting_or_give_value(T& local_val, owoEvent ev);
+		void update_pose_if_needed(TrackedDevicePose_t* poses);
 
-	owoEvent handle_vector(Vector3& local_val, owoEvent ev);
+	public:
+		unsigned int id = 0;
+		unsigned int port_no = 0;
 
-public:
-	unsigned int id = 0;
-	unsigned int port_no = 0;
+		RemoteTracker(DeviceQuatServer* server, const int& id, RemoteTrackerSettings settings_v);
+		~RemoteTracker();
 
-	RemoteTracker(DeviceQuatServer* server, const int& id, RemoteTrackerSettings settings_v);
+		EVRInitError Activate(vr::TrackedDeviceIndex_t unObjectId) override;
 
-	virtual ~RemoteTracker();
+		void Deactivate() override;
+		void EnterStandby() override;
 
+		void* GetComponent(const char* pchComponentNameAndVersion) override;
 
-	virtual EVRInitError Activate(vr::TrackedDeviceIndex_t unObjectId);
+		void PowerOff() override;
 
-	virtual void Deactivate();
+		/** debug request from a client */
+		void DebugRequest(const char* pchRequest, char* pchResponseBuffer, uint32_t unResponseBufferSize) override;
 
-	virtual void EnterStandby();
+		DriverPose_t GetPose() override;
 
-	void* GetComponent(const char* pchComponentNameAndVersion);
+		void RunFrame(TrackedDevicePose_t *poses) override;
 
-	virtual void PowerOff();
+		void ProcessEvent(const vr::VREvent_t& vrEvent) override;
 
-	/** debug request from a client */
-	virtual void DebugRequest(const char* pchRequest, char* pchResponseBuffer, uint32_t unResponseBufferSize);
+		const char* GetSerialNumber() const override;
+		const char* GetModelNumber() const override;
+		const char* GetId() const override;
 
-	virtual DriverPose_t GetPose();
+		void send_invalid_pose();
+		owoEvent process_request(owoEvent ev);
+		std::string get_description();
 
-	void RunFrame(TrackedDevicePose_t *poses);
-
-	void ProcessEvent(const vr::VREvent_t& vrEvent);
-	std::string GetSerialNumber() const;
-
-	void send_invalid_pose();
-
-	owoEvent process_request(owoEvent ev);
-
-	std::string get_description();
+		const Basis& get_last_basis();
 };

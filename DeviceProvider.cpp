@@ -1,10 +1,12 @@
-#include "RemoteTrackerDriver.h"
+#include "DeviceProvider.h"
 
 #include <thread>
 #include <windows.h>
 #include "UDPDeviceQuatServer.h"
 
-int RemoteTrackerDriver::add_tracker(const int& port) {
+#include "HipMoveController.h"
+
+int DeviceProvider::add_tracker(const int& port) {
 	if (ports_taken.count(port) > 0) {
 		DriverLog("PORT %d IS ALREADY TAKEN!!!", port);
 		return -1;
@@ -28,9 +30,11 @@ int RemoteTrackerDriver::add_tracker(const int& port) {
 
 	UDPDeviceQuatServer* server = new UDPDeviceQuatServer(port);
 	RemoteTracker* tracker = new RemoteTracker(server, id, defaults);
-	vr::VRServerDriverHost()->TrackedDeviceAdded(tracker->GetSerialNumber().c_str(), vr::TrackedDeviceClass_GenericTracker, tracker);
+	vr::VRServerDriverHost()->TrackedDeviceAdded(tracker->GetSerialNumber(), vr::TrackedDeviceClass_GenericTracker, tracker);
 
+	devices.push_back(tracker);
 	trackers.push_back(tracker);
+
 	ports_taken.insert({ port, true });
 
 	srv.add_tracker(tracker);
@@ -38,7 +42,7 @@ int RemoteTrackerDriver::add_tracker(const int& port) {
 	return (int)id;
 }
 
-EVRInitError RemoteTrackerDriver::Init(vr::IVRDriverContext* pDriverContext) {
+EVRInitError DeviceProvider::Init(vr::IVRDriverContext* pDriverContext) {
 	VR_INIT_SERVER_DRIVER_CONTEXT(pDriverContext);
 	InitDriverLog(vr::VRDriverLog());
 	poses = (TrackedDevicePose_t*)malloc(sizeof(TrackedDevicePose_t) * k_unMaxTrackedDeviceCount);
@@ -46,52 +50,10 @@ EVRInitError RemoteTrackerDriver::Init(vr::IVRDriverContext* pDriverContext) {
 	to_overlay.init();
 	from_overlay.init();
 
-	/*
-	std::thread* tracker_init = new std::thread([&] {
-
-		// wait until controllers are found
-		// so as to avoid stealing input
-		while (true) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-			int hands_count = 0;
-			for (int i = 0; i < k_unMaxTrackedDeviceCount; i++) {
-				auto propertyContainer = vr::VRProperties()->TrackedDeviceToPropertyContainer(i);
-
-				ETrackedPropertyError err;
-
-				ETrackedDeviceClass deviceClass = (ETrackedDeviceClass)
-					vr::VRProperties()->GetInt32Property(propertyContainer, Prop_DeviceClass_Int32, &err);
-				if (err) continue;
-
-				if (deviceClass != TrackedDeviceClass_Controller) continue;
-
-				ETrackedControllerRole role = (ETrackedControllerRole)
-					vr::VRProperties()->GetInt32Property(propertyContainer, Prop_ControllerRoleHint_Int32, &err);
-				if (err) continue;
-
-				if ((role == TrackedControllerRole_LeftHand) || (role == TrackedControllerRole_RightHand)) {
-					hands_count++;
-				}
-			}
-
-			if ((hands_count >= 2) || (should_bypass_waiting)) {
-				// wait for a moment longer because i dont trust like that
-				std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-				break;
-			}
-
-
-		}
-		add_tracker(6969);
-
-		return;
-		});
-		*/
 	return VRInitError_None;
 }
 
-void RemoteTrackerDriver::Cleanup() {
+void DeviceProvider::Cleanup() {
 	CleanupDriverLog();
 	for (auto v : trackers) {
 		delete ((RemoteTracker*)(v));
@@ -101,9 +63,9 @@ void RemoteTrackerDriver::Cleanup() {
 }
 
 
-constexpr unsigned int CURR_VERSION = 7;
+constexpr unsigned int CURR_VERSION = 8;
 
-owoEvent RemoteTrackerDriver::handle_event(const owoEvent& ev) {
+owoEvent DeviceProvider::handle_event(const owoEvent& ev) {
 	switch (ev.type) {
 		case GET_VERSION:
 			return { .type = VERSION_RECEIVED, .index = CURR_VERSION };
@@ -152,7 +114,7 @@ owoEvent RemoteTrackerDriver::handle_event(const owoEvent& ev) {
 	return noneEvent;
 }
 
-void RemoteTrackerDriver::tick_ipc() {
+void DeviceProvider::tick_ipc() {
 	while (from_overlay.is_data_waiting()) {
 		IPCData data = from_overlay.get_data();
 
@@ -177,21 +139,21 @@ void RemoteTrackerDriver::tick_ipc() {
 }
 
 
-void RemoteTrackerDriver::RunFrame() {
+void DeviceProvider::RunFrame() {
 	tick_ipc();
 
 	VRServerDriverHost()->GetRawTrackedDevicePoses(0, poses, k_unMaxTrackedDeviceCount);
 
-	for (auto v : trackers) {
+	for (auto v : devices) {
 		if (v == nullptr) continue;
-		((RemoteTracker*)v)->RunFrame(poses);
+		v->RunFrame(poses);
 	}
 
 	vr::VREvent_t vrEvent;
 	while (vr::VRServerDriverHost()->PollNextEvent(&vrEvent, sizeof(vrEvent))) {
-		for (auto v : trackers) {
+		for (auto v : devices) {
 			if (v == nullptr) continue;
-			((RemoteTracker*)v)->ProcessEvent(vrEvent);
+			v->ProcessEvent(vrEvent);
 		}
 	}
 

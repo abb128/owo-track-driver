@@ -28,12 +28,15 @@
     <ClCompile Include="driverlog.cpp">
       <Filter>thirdparty</Filter>
     </ClCompile>
-    <ClCompile Include="RemoteTrackerDriver.cpp" />
     <ClCompile Include="win32ipc.cpp">
       <Filter>IPC</Filter>
     </ClCompile>
     <ClCompile Include="InfoServer.cpp">
       <Filter>servers</Filter>
+    </ClCompile>
+    <ClCompile Include="DeviceProvider.cpp" />
+    <ClCompile Include="HipMoveController.cpp">
+      <Filter>HipMove</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -71,7 +74,6 @@
     <ClInclude Include="driverlog.h">
       <Filter>thirdparty</Filter>
     </ClInclude>
-    <ClInclude Include="RemoteTrackerDriver.h" />
     <ClInclude Include="abstract_ipc.h">
       <Filter>IPC</Filter>
     </ClInclude>
@@ -87,6 +89,11 @@
     <ClInclude Include="InfoServer.h">
       <Filter>servers</Filter>
     </ClInclude>
+    <ClInclude Include="AbstractDevice.h" />
+    <ClInclude Include="DeviceProvider.h" />
+    <ClInclude Include="HipMoveController.h">
+      <Filter>HipMove</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="math">
@@ -100,6 +107,9 @@
     </Filter>
     <Filter Include="IPC">
       <UniqueIdentifier>{f0ce0219-5578-4922-858c-34fbdbe6eeb2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HipMove">
+      <UniqueIdentifier>{3a976538-1455-422a-95ec-48b4e1d2e703}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

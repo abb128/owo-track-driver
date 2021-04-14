@@ -11,10 +11,16 @@
 
 #include "InfoServer.h"
 
-class RemoteTrackerDriver : public IServerTrackedDeviceProvider {
+#include "AbstractDevice.h"
+
+class DeviceProvider : public IServerTrackedDeviceProvider {
 private:
 	int add_tracker(const int& port);
 	std::vector<RemoteTracker*> trackers;
+
+	std::vector<AbstractDevice*> devices;
+
+
 	std::map<int, bool> ports_taken;
 	TrackedDevicePose_t* poses;
 

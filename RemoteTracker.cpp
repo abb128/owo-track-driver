@@ -16,19 +16,13 @@
 
 using namespace vr;
 
-RemoteTracker::RemoteTracker(DeviceQuatServer *server, const int& id_v, RemoteTrackerSettings settings_v) {
+RemoteTracker::RemoteTracker(DeviceQuatServer *server, const int& id_v, RemoteTrackerSettings settings_v) : dataserver(server), settings(settings_v), id(id_v) {
 	m_unObjectId = vr::k_unTrackedDeviceIndexInvalid;
 	m_ulPropertyContainer = vr::k_ulInvalidPropertyContainer;
 
-	m_sSerialNumber = "OWO_TRACKER_" + std::to_string(id_v);
-	m_sModelNumber = "OwoTracker_" + std::to_string(id_v);
+	m_sSerialNumber = "OWO_TRACKER_" + std::to_string(id);
+	m_sModelNumber = "OwoTracker_" + std::to_string(id);
 
-	dataserver = server;
-	settings = settings_v;
-
-	worldFromDriverRot = quaternion::init(0, 0, 0, 1);
-	
-	id = id_v;
 	port_no = dataserver->get_port();
 }
 
@@ -39,10 +33,6 @@ RemoteTracker::~RemoteTracker()
 
 EVRInitError RemoteTracker::Activate(vr::TrackedDeviceIndex_t unObjectId)
 {
-	//vr::VRSettings()->SetString(k_pch_Trackers_Section, ("/devices/owoTrack/" + m_sSerialNumber).c_str(), "TrackerRole_Waist");
-	//vr::VRSettings()->SetString(k_pch_Trackers_Section, ("/htc/vive_tracker/" + m_sSerialNumber).c_str(), "TrackerRole_Waist");
-
-	// works for some reason if there is no slash
 	vr::VRSettings()->SetString(k_pch_Trackers_Section, ("/devices/htc/vive_tracker" + m_sSerialNumber).c_str(), "TrackerRole_Waist");
 
 
@@ -80,8 +70,7 @@ EVRInitError RemoteTracker::Activate(vr::TrackedDeviceIndex_t unObjectId)
 
 	vr::VRProperties()->SetUint64Property(m_ulPropertyContainer, vr::Prop_CurrentUniverseId_Uint64, 2);
 
-	// create our haptic component
-	vr::VRDriverInput()->CreateHapticComponent(m_ulPropertyContainer, "/output/haptic", &m_compHaptic);
+	vr::VRDriverInput()->CreateHapticComponent(m_ulPropertyContainer, "/output/haptic", &haptic);
 
 
 	try {
@@ -101,9 +90,7 @@ void RemoteTracker::Deactivate()
 	m_unObjectId = vr::k_unTrackedDeviceIndexInvalid;
 }
 
-void RemoteTracker::EnterStandby()
-{
-}
+void RemoteTracker::EnterStandby(){}
 
 void* RemoteTracker::GetComponent(const char* pchComponentNameAndVersion)
 {
@@ -111,80 +98,9 @@ void* RemoteTracker::GetComponent(const char* pchComponentNameAndVersion)
 	return NULL;
 }
 
-void RemoteTracker::PowerOff()
-{
-}
+void RemoteTracker::PowerOff(){}
 
-/** debug request from a client */
-
-enum MESSAGE_TYPES {
-	SET_CALIBRATION_MODE = 1,
-	GET_CALIBRATION_MODE = 2,
-	
-	SET_POSITION_PREDICTION = 3,
-	GET_POSITION_PREDICTION = 4,
-
-	GET_DRIVER_VERSION = 5,
-
-	SET_CALIBRATION_YAW = 6,
-	GET_CALIBRATION_YAW = 7,
-
-	GET_CONNECTION_ALIVE = 8
-};
-
-void RemoteTracker::DebugRequest(const char* pchRequest, char* pchResponseBuffer, uint32_t unResponseBufferSize)
-{
-	unsigned int msg_type = pchRequest[0];
-	switch (msg_type) {
-
-		case SET_CALIBRATION_MODE:
-			is_calibrating = pchRequest[1] == 2;
-			return;
-		case GET_CALIBRATION_MODE:
-			pchResponseBuffer[0] = (is_calibrating)+1;
-			return;
-
-		case SET_POSITION_PREDICTION:
-			settings.should_predict_position = pchRequest[1] == 2;
-			return;
-		case GET_POSITION_PREDICTION:
-			pchResponseBuffer[0] = (settings.should_predict_position)+1;
-			return;
-
-		case GET_DRIVER_VERSION:
-			pchResponseBuffer[0] = 1;
-			return;
-
-		case SET_CALIBRATION_YAW: {
-			std::string data(pchRequest + 1);
-			DriverLog("recv string %s", data.c_str());
-			double new_yaw = std::stod(data);
-			DriverLog("Set to %s", data.c_str());
-			settings.yaw_offset = new_yaw;
-			return;
-		}
-		case GET_CALIBRATION_YAW: {
-			std::string data = std::to_string(settings.yaw_offset);
-			const char* data_c = data.c_str();
-			int i;
-			for (i = 0; i < min(unResponseBufferSize, data.length()); i++) {
-				pchResponseBuffer[i] = data_c[i];
-			}
-			pchResponseBuffer[i] = 0;
-			return;
-		}
-
-		case GET_CONNECTION_ALIVE: {
-			pchResponseBuffer[0] = dataserver->isConnectionAlive() ? 2 : 1;
-			return;
-		}
-
-
-		default:
-			DriverLog("Unknown message type %d", msg_type);
-			pchResponseBuffer[0] = 0;
-	}
-}
+void RemoteTracker::DebugRequest(const char* pchRequest, char* pchResponseBuffer, uint32_t unResponseBufferSize){}
 
 DriverPose_t RemoteTracker::GetPose()
 {
@@ -244,6 +160,24 @@ inline owoEvent RemoteTracker::set_setting_or_give_value(T& local_val, owoEvent 
 }
 
 
+owoEvent RemoteTracker::handle_controller(owoEvent ev) {
+	if (ev.type == SET_TRACKER_SETTING) {
+		bool tgt = get_ref_from_setting_event<bool>(ev.trackerSetting);
+		if (!associated_controller) {
+			if (!tgt) return noneEvent;
+			associated_controller = new HipMoveController(this);
+			vr::VRServerDriverHost()->TrackedDeviceAdded(associated_controller->GetSerialNumber(), vr::TrackedDeviceClass_Controller, associated_controller);
+		}
+
+		associated_controller->enabled = tgt;
+
+		return noneEvent;
+	} else {
+		if (!associated_controller) return give_value(false, ev);
+		return give_value(associated_controller->enabled, ev);
+	}
+}
+
 inline owoEvent RemoteTracker::handle_vector(Vector3& local_val, owoEvent ev) {
 	owoEventVector tmp = { local_val.x, local_val.y, local_val.z };
 	owoEvent result = set_setting_or_give_value(tmp, ev);
@@ -270,6 +204,8 @@ owoEvent RemoteTracker::process_request(owoEvent ev){
 			return set_setting_or_give_value(settings.should_predict_position, ev);
 		case IS_CALIBRATING:
 			return set_setting_or_give_value(is_calibrating, ev);
+		case CALIBRATING_DOWN:
+			return set_setting_or_give_value(is_down_calibrating, ev);
 		case IS_CONN_ALIVE: 
 			return give_value(dataserver->isConnectionAlive(), ev);
 		case OFFSET_GLOBAL:
@@ -282,38 +218,25 @@ owoEvent RemoteTracker::process_request(owoEvent ev){
 			return handle_vector(settings.global_rot_euler, ev);
 		case OFFSET_ROT_LOCAL:
 			return handle_vector(settings.local_rot_euler, ev);
+		case HIP_MOVE:
+			return handle_controller(ev);
+		case HIP_MOVE_VECTOR:
+			if (!associated_controller) return noneEvent;
+			return handle_vector(associated_controller->analog_data, ev);
 	}
 	return noneEvent;
 }
 
-std::string RemoteTracker::get_description(){
+std::string RemoteTracker::get_description() {
 	return "Tracker " + std::to_string(id);
 }
 
-inline double get_yaw(Basis basis, Vector3 front_v) {
-	// xform to get front vector (up points front)
-	Vector3 front_relative = basis.xform(front_v);
-
-
-	// flatten to XZ for yaw
-	front_relative = (front_relative * Vector3(1, 0, 1)).normalized();
-
-	// get angle
-	double angle = front_relative.angle_to(Vector3(0, 0, 1));
-
-	// convert to offset (idk why front_relative.x works)
-	return -angle * Math::sign(front_relative.x);
+const Basis& RemoteTracker::get_last_basis() {
+	return last_basis;
 }
 
 
-
-inline double get_yaw(Quat quat) {
-	return get_yaw(Basis(quat), Vector3(0, 1, 0));
-}
-
-
-void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
-{
+void RemoteTracker::update_pose_if_needed(TrackedDevicePose_t* poses) {
 	try {
 		dataserver->tick();
 	}
@@ -358,19 +281,6 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 			anchor.mDeviceToAbsoluteTracking.m[2][1],
 			anchor.mDeviceToAbsoluteTracking.m[2][2]
 		);
-
-		/*
-		auto props = vr::VRProperties()->TrackedDeviceToPropertyContainer(settings.anchor_device_id);
-
-		std::string modelNumber = VRProperties()->GetStringProperty(props, Prop_ModelNumber_String);
-		std::string renderModel = VRProperties()->GetStringProperty(props, Prop_RenderModelName_String);
-
-		DriverLog("Device %d = %s %s (%.2f %.2f %.2f)\n", settings.anchor_device_id, modelNumber.c_str(), renderModel.c_str(),
-			anchor.mDeviceToAbsoluteTracking.m[0][3],
-			anchor.mDeviceToAbsoluteTracking.m[1][3],
-			anchor.mDeviceToAbsoluteTracking.m[2][3]
-		);
-		*/
 	}
 	else {
 		offset_basis.set_euler(Vector3());
@@ -386,7 +296,7 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 		pose.vecPosition[1] = settings.y_override.to;
 	if (settings.z_override.enabled)
 		pose.vecPosition[2] = settings.z_override.to;
-	
+
 
 	double* acceleration = dataserver->getAccel();
 	pose.vecAcceleration[0] = acceleration[0];
@@ -397,22 +307,35 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 	pose.qDriverFromHeadRotation = quaternion::init(0, 0, 0, 1);
 
 	double* rotation = dataserver->getRotationQuaternion();
-	
+
 	Quat quat = Quat(rotation[0], rotation[1], rotation[2], rotation[3]);
 
 	quat = Quat(Vector3(1, 0, 0), -Math_PI / 2.0) * quat;
 
 	if (is_calibrating) {
-		settings.yaw_offset = (get_yaw(quat)) - (get_yaw(offset_basis, Vector3(0, 0, -1)));
+		settings.global_rot_euler = Vector3(0, (get_yaw(quat)) - (get_yaw(offset_basis, Vector3(0, 0, -1))), 0);
+
 		offset_global = (offset_basis.xform(Vector3(0, 0, -1)) * Vector3(1, 0, 1)).normalized() + Vector3(0, 0.2, 0);
 		offset_local_device = Vector3(0, 0, 0);
 		offset_local_tracker = Vector3(0, 0, 0);
 	}
 
-
-	quat = Quat(Vector3(0, 1, 0), settings.yaw_offset) * quat;
-
 	quat = Quat(settings.global_rot_euler) * quat;
+
+
+	if (is_down_calibrating) {
+		float anchor_yaw = 0.0;
+		if ((settings.anchor_device_id >= 0) && (poses)) {
+			auto matrix = poses[settings.anchor_device_id].mDeviceToAbsoluteTracking;
+			anchor_yaw = 
+				get_yaw(from_hmdMatrix(matrix), Vector3(0, 0, -1));
+		}
+		
+		auto rot = quat.inverse().get_euler_yxz();
+		rot = (Quat(rot) * Quat(Vector3(0, 1, 0), -anchor_yaw)).get_euler_yxz();
+		settings.local_rot_euler = rot;
+	}
+
 	quat = quat * Quat(settings.local_rot_euler);
 
 	pose.qRotation = quaternion::from_Quat(quat);
@@ -423,12 +346,14 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 	}
 
 	Basis final_tracker_basis = Basis(quat);
+	last_basis = final_tracker_basis;
 
 	for (int i = 0; i < 3; i++) {
 		pose.vecPosition[i] += offset_global.get_axis(i);
 		pose.vecPosition[i] += offset_basis.xform(offset_local_device).get_axis(i);
 		pose.vecPosition[i] += final_tracker_basis.xform(offset_local_tracker).get_axis(i);
 	}
+
 
 
 	if ((!is_calibrating) && settings.should_predict_position) {
@@ -441,9 +366,13 @@ void RemoteTracker::RunFrame(TrackedDevicePose_t* poses)
 	}
 
 	VRServerDriverHost()->TrackedDevicePoseUpdated(m_unObjectId, pose, sizeof(pose));
+}
 
-
-
+void RemoteTracker::RunFrame(TrackedDevicePose_t* poses) {
+	update_pose_if_needed(poses);
+	if (associated_controller) {
+		associated_controller->RunFrame(poses);
+	}
 }
 
 void RemoteTracker::ProcessEvent(const vr::VREvent_t& vrEvent)
@@ -452,10 +381,8 @@ void RemoteTracker::ProcessEvent(const vr::VREvent_t& vrEvent)
 	{
 	case vr::VREvent_Input_HapticVibration:
 	{
-		if (vrEvent.data.hapticVibration.componentHandle == m_compHaptic)
+		if (vrEvent.data.hapticVibration.componentHandle == haptic)
 		{
-			// This is where you would send a signal to your hardware to trigger actual haptic feedback
-			DriverLog("BUZZ!\n");
 			dataserver->buzz(vrEvent.data.hapticVibration.fDurationSeconds, vrEvent.data.hapticVibration.fFrequency, vrEvent.data.hapticVibration.fAmplitude);
 		}
 	}
@@ -463,4 +390,7 @@ void RemoteTracker::ProcessEvent(const vr::VREvent_t& vrEvent)
 	}
 }
 
-std::string RemoteTracker::GetSerialNumber() const { return m_sSerialNumber; }
+const char* RemoteTracker::GetSerialNumber() const { return m_sSerialNumber.c_str(); }
+const char* RemoteTracker::GetModelNumber() const { return m_sModelNumber.c_str(); }
+
+const char* RemoteTracker::GetId() const { return GetSerialNumber(); }

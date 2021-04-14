@@ -32,7 +32,11 @@ enum owoTrackerSettingType {
 	PREDICT_POSITION_STRENGTH, // double_v
 
 	IS_CALIBRATING,			// bool_v
-	IS_CONN_ALIVE			// bool_v, read-only
+	IS_CONN_ALIVE,			// bool_v, read-only
+
+	CALIBRATING_DOWN,		// bool_v
+	HIP_MOVE,				// bool_v
+	HIP_MOVE_VECTOR			// vector
 };
 
 struct owoEventTrackerSetting {
@@ -69,8 +73,6 @@ enum owoEventType {
 	TRACKER_CREATED, // new tracker index - index
 
 	DESTROY_TRACKER // tracker index - index
-
-	// add tracker? remove tracker?
 };
 
 struct owoEvent {
@@ -97,8 +99,10 @@ inline T& get_ref_from_setting_event(owoEventTrackerSetting& ev) {
 		return (T&)ev.double_v;
 
 	case PREDICT_POSITION:
+	case CALIBRATING_DOWN:
 	case IS_CALIBRATING:
 	case IS_CONN_ALIVE:
+	case HIP_MOVE:
 		return (T&)ev.bool_v;
 
 	case OFFSET_GLOBAL:
@@ -106,6 +110,7 @@ inline T& get_ref_from_setting_event(owoEventTrackerSetting& ev) {
 	case OFFSET_LOCAL_TO_TRACKER:
 	case OFFSET_ROT_GLOBAL:
 	case OFFSET_ROT_LOCAL:
+	case HIP_MOVE_VECTOR:
 		return (T&)ev.vector;
 	}
 }

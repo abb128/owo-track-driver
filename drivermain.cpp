@@ -7,8 +7,8 @@ using namespace vr;
 #define HMD_DLL_IMPORT extern "C" __declspec( dllimport )
 #endif
 
-#include "RemoteTrackerDriver.h"
-RemoteTrackerDriver g_serverDriverNull;
+#include "DeviceProvider.h"
+DeviceProvider g_serverDriverNull;
 
 
 
