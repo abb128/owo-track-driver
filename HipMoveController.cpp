@@ -1,6 +1,7 @@
 #include "HipMoveController.h"
 
 #include "RemoteTracker.h"
+#include "quaternion.h"
 
 HipMoveController::HipMoveController(RemoteTracker* tgt) : tgt_tracker(tgt)
 {
@@ -68,10 +69,21 @@ DriverPose_t HipMoveController::GetPose() {
 	pose.vecPosition[1] = 9999999;
 	pose.vecPosition[2] = 9999999;
 
+	pose.vecVelocity[0] = 0.0;
+	pose.vecVelocity[1] = 0.0;
+	pose.vecVelocity[2] = 0.0;
+
+	pose.qWorldFromDriverRotation = quaternion::init(0, 0, 0, 1);
+	pose.qDriverFromHeadRotation = quaternion::init(0, 0, 0, 1);
 
 	return pose;
 }
 
+void HipMoveController::send_invalid_pose() {
+	DriverPose_t pose = GetPose();
+
+	VRServerDriverHost()->TrackedDevicePoseUpdated(m_unObjectId, pose, sizeof(pose));
+}
 void HipMoveController::RunFrame(TrackedDevicePose_t* poses)
 {
 	if (!enabled) {
@@ -91,10 +103,8 @@ void HipMoveController::RunFrame(TrackedDevicePose_t* poses)
 	float new_x = cos(angle - diff) * magnitude;
 	float new_y = sin(angle - diff) * magnitude;
 
-
-	// DriverLog("HipMove enabled, (hmd %.2f, tracker %.2f).... initial (%.2f, %.2f), diff (%.2f), new (%.2f, %.2f)", hmdYaw, trackerYaw, analog_data.x, analog_data.y, diff, new_x, new_y);
-
 	SetDirection(new_x, new_y);
+	send_invalid_pose();
 }
 
 void HipMoveController::ProcessEvent(const vr::VREvent_t& vrEvent)

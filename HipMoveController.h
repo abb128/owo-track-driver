@@ -34,6 +34,7 @@ class HipMoveController : public AbstractDevice {
 		void DebugRequest(const char* pchRequest, char* pchResponseBuffer, uint32_t unResponseBufferSize) override;
 
 		DriverPose_t GetPose() override;
+		void send_invalid_pose();
 
 		void RunFrame(TrackedDevicePose_t* poses) override;
 

@@ -15,8 +15,8 @@ typedef float sensor_data_t;
 // message type + packet id
 #define MSG_HEADER_SIZE (sizeof(message_header_type_t) + sizeof(message_id_t))
 
-// up to 4 sensor datapoints
-#define MAX_MSG_SIZE (MSG_HEADER_SIZE + sizeof(sensor_data_t)*4)
+// SlimeVR extensions add some more, just stick with 256 for now
+#define MAX_MSG_SIZE 256
 
 /*
 first 4 bytes - message type
